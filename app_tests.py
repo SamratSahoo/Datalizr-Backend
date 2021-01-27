@@ -3,5 +3,5 @@ pload = {'projectId': 'World',
          'fileType': '.csv',
          'columns': ['Hello', 'World']}
 
-r = requests.post('https://datalizr.azurewebsites.net/createProject', json=pload)
-print(r.content)
+r = requests.post('http://localhost:5000/createProject', json=pload)
+print(r)

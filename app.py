@@ -2,6 +2,7 @@ import os
 from flask import Flask, request
 import boto3
 import codecs
+from pathlib import Path
 
 app = Flask(__name__)
 
@@ -18,10 +19,12 @@ def createProject():
     filenameID = request.json['projectId']
     fileType = request.json['fileType']
     columns = request.json['columns']
-    path = TEMP_FOLDER+ filenameID + fileType
+    path = TEMP_FOLDER + filenameID + fileType
 
     if not os.path.exists(TEMP_FOLDER):
         os.mkdir(TEMP_FOLDER)
+
+    Path(path).touch()
 
     with open(path, 'w') as file:
         for column in columns:
