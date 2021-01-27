@@ -7,5 +7,5 @@ pload = {'projectId': 'Test',
 LOCAL = 'http://localhost:5000/'
 AZURE = 'https://datalizr.azurewebsites.net/'
 
-r = requests.post(LOCAL + 'createProject', json=pload)
+r = requests.post(AZURE + 'createProject', json=pload)
 print(r)
