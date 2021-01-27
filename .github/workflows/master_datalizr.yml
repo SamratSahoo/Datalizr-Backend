@@ -31,4 +31,4 @@ jobs:
       with:
         app-name: 'datalizr'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_c58f2190697c44cb988e7c6b95dfc51c }}
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_971b9c6f100c41e0b2ef37625e6d1c4a }}
