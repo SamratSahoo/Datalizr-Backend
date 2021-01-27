@@ -1,7 +1,11 @@
 import requests
-pload = {'projectId': 'World',
+
+pload = {'projectId': 'Test',
          'fileType': '.csv',
          'columns': ['Hello', 'World']}
 
-r = requests.post('http://localhost:5000/createProject', json=pload)
+LOCAL = 'http://localhost:5000/'
+AZURE = 'https://datalizr.azurewebsites.net/'
+
+r = requests.post(LOCAL + 'createProject', json=pload)
 print(r)

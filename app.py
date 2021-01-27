@@ -21,8 +21,11 @@ def createProject():
     columns = request.json['columns']
     path = TEMP_FOLDER + filenameID + fileType
 
-    if not os.path.exists(TEMP_FOLDER):
-        os.mkdir(TEMP_FOLDER)
+    try:
+        if not os.path.exists(TEMP_FOLDER):
+            os.makedirs(TEMP_FOLDER, exist_ok=True)
+    except FileExistsError:
+        print('FileExistsError')
 
     Path(path).touch()
 
