@@ -20,7 +20,7 @@ def createProject():
     columns = request.json['columns']
     path = TEMP_FOLDER+ filenameID + fileType
 
-    if not os.path.exists(path):
+    if not os.path.exists(TEMP_FOLDER):
         os.mkdir(TEMP_FOLDER)
 
     with open(path, 'w') as file:
