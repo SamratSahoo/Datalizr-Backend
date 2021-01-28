@@ -1,11 +1,9 @@
 import requests
+from secret import *
 
-pload = {'projectId': 'Test',
+pload = {'projectId': 'Cat',
          'fileType': '.csv',
          'columns': ['Hello', 'World']}
 
-LOCAL = 'http://localhost:5000/'
-AZURE = 'https://datalizr.azurewebsites.net/'
-
 r = requests.post(AZURE + 'createProject', json=pload)
-print(r)
+print(r.content)

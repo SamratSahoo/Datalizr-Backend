@@ -7,6 +7,7 @@ chardet==4.0.0
 click==7.1.2
 durationpy==0.5
 Flask==1.1.2
+Flask-Cors==3.0.10
 future==0.18.2
 hjson==3.0.2
 idna==2.10

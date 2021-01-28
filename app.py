@@ -1,8 +1,17 @@
 import os
 from flask import Flask, request
-import boto3
-import codecs
-from pathlib import Path
+from azure.core.exceptions import (
+    ResourceExistsError,
+    ResourceNotFoundError
+)
+
+from azure.storage.fileshare import (
+    ShareServiceClient,
+    ShareClient,
+    ShareDirectoryClient,
+    ShareFileClient
+)
+from secret import *
 
 app = Flask(__name__)
 
@@ -16,23 +25,44 @@ def index():
 
 @app.route('/createProject', methods=['POST'])
 def createProject():
-    filenameID = request.json['projectId']
-    fileType = request.json['fileType']
-    columns = request.json['columns']
-    path = TEMP_FOLDER + filenameID + fileType
+    try:
+        filenameID = request.json['projectId']
+        fileType = request.json['fileType']
+        columns = request.json['columns']
+        path = TEMP_FOLDER + filenameID + fileType
 
-    Path(path).touch()
+        with open(path, 'w+') as file:
+            for column in columns:
+                if column == columns[-1]:
+                    file.write(column.strip())
+                else:
+                    file.write(column.strip() + ',')
 
-    with open(path, 'w') as file:
-        for column in columns:
-            if column == columns[-1]:
-                file.write(column.strip())
-            else:
-                file.write(column.strip() + ',')
+            file.close()
 
-        file.close()
+            client = ShareServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+            uploadFile(AZURE_CONNECTION_STRING, path, 'datasets', '')
+    except:
+        return {'fileName': '', 'success': False}
 
-    return {'fileName': path}
+    return {'fileName': path, 'success': True}
+
+
+def uploadFile(connectionString, filePath, shareName, destination):
+    try:
+        sourceFile = open(filePath, "rb")
+        data = sourceFile.read()
+
+        fileClient = ShareFileClient.from_connection_string(
+            connectionString, shareName, destination)
+
+        fileClient.upload_file(data)
+
+    except ResourceExistsError as ex:
+        print("ResourceExistsError:", ex.message)
+
+    except ResourceNotFoundError as ex:
+        print("ResourceNotFoundError:", ex.message)
 
 
 if __name__ == '__main__':
