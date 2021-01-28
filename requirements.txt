@@ -1,5 +1,6 @@
 argcomplete==1.12.2
 azure-core==1.10.0
+azure-storage-blob==12.7.1
 azure-storage-file-share==12.4.1
 boto3==1.16.59
 botocore==1.19.59

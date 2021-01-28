@@ -4,16 +4,12 @@ from azure.core.exceptions import (
     ResourceExistsError,
     ResourceNotFoundError
 )
-
-from azure.storage.fileshare import (
-    ShareServiceClient,
-    ShareClient,
-    ShareDirectoryClient,
-    ShareFileClient
-)
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, __version__
 from secret import *
+from flask_cors import CORS
 
 app = Flask(__name__)
+cors = CORS(app)
 
 TEMP_FOLDER = 'tmp' + os.sep
 
@@ -39,30 +35,22 @@ def createProject():
                     file.write(column.strip() + ',')
 
             file.close()
+            uploadFile(path)
 
-            client = ShareServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-            uploadFile(AZURE_CONNECTION_STRING, path, 'datasets', '')
-    except:
-        return {'fileName': '', 'success': False}
+    except Exception as e:
+        print(e)
+        return {'fileName': path, 'success': False}
 
     return {'fileName': path, 'success': True}
 
 
-def uploadFile(connectionString, filePath, shareName, destination):
-    try:
-        sourceFile = open(filePath, "rb")
-        data = sourceFile.read()
+def uploadFile(filePath):
+    blobServiceClient = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+    containerName = "datasets"
+    blobClient = blobServiceClient.get_blob_client(container=containerName, blob=filePath.replace('tmp' + os.sep, ''))
 
-        fileClient = ShareFileClient.from_connection_string(
-            connectionString, shareName, destination)
-
-        fileClient.upload_file(data)
-
-    except ResourceExistsError as ex:
-        print("ResourceExistsError:", ex.message)
-
-    except ResourceNotFoundError as ex:
-        print("ResourceNotFoundError:", ex.message)
+    with open(filePath, "rb") as data:
+        blobClient.upload_blob(data)
 
 
 if __name__ == '__main__':
