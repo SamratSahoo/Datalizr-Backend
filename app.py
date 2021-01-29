@@ -10,7 +10,6 @@ from flask_cors import CORS
 import uuid
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///application.db'
 cors = CORS(app)
 
 TEMP_FOLDER = 'tmp' + os.sep
@@ -74,6 +73,7 @@ def uploadFile(filePath):
 
     with open(filePath, "rb") as data:
         blobClient.upload_blob(data)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
