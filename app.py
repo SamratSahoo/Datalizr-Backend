@@ -22,46 +22,41 @@ def index():
 
 @app.route('/createProject', methods=['POST'])
 def createProject():
-    try:
-        # Specify type of file + CSV Column Titles
-        fileType = request.json['fileType']
-        columns = request.json['columns']
+    # Specify type of file + CSV Column Titles
+    fileType = request.json['fileType']
+    columns = request.json['columns']
 
-        # Create UUID for File (Will serve as name)
+    # Create UUID for File (Will serve as name)
+    filenameID = str(uuid.uuid4())
+
+    # If UUID already exists, make new UUID
+    while UniqueIds.query.filter_by(id=filenameID).first() is not None:
         filenameID = str(uuid.uuid4())
 
-        # If UUID already exists, make new UUID
-        while UniqueIds.query.filter_by(id=filenameID).first() is not None:
-            filenameID = str(uuid.uuid4())
+    # Final Path
+    path = TEMP_FOLDER + filenameID + fileType
 
-        # Final Path
-        path = TEMP_FOLDER + filenameID + fileType
+    # Make File + write Columns in File + write to tmp folder
+    with open(path, 'w+') as file:
+        for column in columns:
+            if column == columns[-1]:
+                file.write(column.strip())
+            else:
+                file.write(column.strip() + ',')
+        file.close()
 
-        # Make File + write Columns in File + write to tmp folder
-        with open(path, 'w+') as file:
-            for column in columns:
-                if column == columns[-1]:
-                    file.write(column.strip())
-                else:
-                    file.write(column.strip() + ',')
-            file.close()
+        # Upload file to Azure
+        uploadFile(path)
+        # Remove file from tmp folder
+        pathlib.Path(path).unlink()
 
-            # Upload file to Azure
-            uploadFile(path)
-            # Remove file from tmp folder
-            pathlib.Path(path).unlink()
+        # Save file to UUID Database
+        uniqueId = UniqueIds(id=filenameID)
+        uniqueId.saveToDB()
 
-            # Save file to UUID Database
-            uniqueId = UniqueIds(id=filenameID)
-            uniqueId.saveToDB()
-
-            # Add Dataset to UUID
-            dataset = Dataset(id=filenameID)
-            dataset.saveToDB()
-    except Exception as e:
-        print(e)
-        path = ''
-        return {'fileName': path, 'success': False, 'e': e}
+        # Add Dataset to UUID
+        dataset = Dataset(id=filenameID)
+        dataset.saveToDB()
 
     return {'fileName': path, 'success': True}
 
