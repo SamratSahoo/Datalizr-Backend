@@ -62,7 +62,7 @@ def createProject():
     except Exception as e:
         print(e)
         path = ''
-        return {'fileName': path, 'success': False}
+        return {'fileName': path, 'success': False, 'e': e}
 
     return {'fileName': path, 'success': True}
 
