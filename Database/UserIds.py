@@ -1,14 +1,15 @@
-import uuid
-
 from sqlalchemy import Column, String
 
-from Database.Engine import Base, dbSession, engine
+from Database.Engine import dbSession, Base, engine
 
 
-class Dataset(Base):
-    __tablename__ = 'Datasets'
+class UserIds(Base):
+    __tablename__ = 'UniqueIds'
     __table_args__ = {'extend_existing': True}
-    id = Column('id', String(length=36), default=lambda: str(uuid.uuid4()), primary_key=True, nullable=False)
+    id = Column('id', String(length=36), primary_key=True, unique=True)
+
+    def __repr__(self):
+        return 'UUID: %r' % self.id
 
     def saveToDB(self):
         dbSession.add(self)

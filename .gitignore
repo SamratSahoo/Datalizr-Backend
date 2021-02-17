@@ -6,6 +6,7 @@ __pycache__/
 secret.py
 # C extensions
 *.so
+.vscode
 
 # Distribution / packaging
 .Python
