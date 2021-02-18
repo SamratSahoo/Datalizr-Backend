@@ -9,9 +9,9 @@ class DatasetData(Base):
     __tablename__ = 'DatasetData'
     __table_args__ = {'extend_existing': True}
     id = Column('id', String(length=36), primary_key=True, unique=True, default=lambda: str(uuid.uuid4()))
-    datasetId = Column('fileId', String(length=36))
+    datasetId = Column('datasetId', String(length=36))
     data = Column('data', PickleType())
-    userUUID = Column('datasetId', String(length=36))
+    userUUID = Column('userId', String(length=36))
     fileType = Column('fileType', String(), default=".csv")
     loaded = Column('loaded', Boolean(), default=False)
 
