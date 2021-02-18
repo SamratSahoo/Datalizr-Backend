@@ -1,5 +1,6 @@
 import datetime
 import os
+import uuid
 
 from itsdangerous import SignatureExpired, BadSignature, TimedJSONWebSignatureSerializer
 from sqlalchemy import Column, String, Boolean
@@ -10,7 +11,7 @@ class GoogleUser(Base):
     __tablename__ = 'GoogleUsers'
     __table_args__ = {'extend_existing': True}
     # Datalizr Specific
-    id = Column('id', String(length=36), primary_key=True)
+    id = Column('id', String(length=36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
     # Google Specific
     socialId = Column('googleId', String(200), nullable=False, unique=True)

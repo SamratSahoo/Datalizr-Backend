@@ -1,3 +1,4 @@
+APScheduler==3.7.0
 argcomplete==1.12.2
 auth==0.5.3
 azure-core==1.10.0
@@ -67,6 +68,7 @@ toml==0.10.2
 tqdm==4.56.0
 troposphere==2.6.3
 typing-extensions==3.7.4.3
+tzlocal==2.1
 urllib3==1.26.3
 Werkzeug==0.16.1
 wsgi-request-logger==0.4.6

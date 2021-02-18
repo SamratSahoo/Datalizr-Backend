@@ -10,15 +10,18 @@ import pandas as pd
 
 from Database.Dataset import Dataset
 from Database.Encryption import encryptData
-from Database.Engine import engine, Base
+from Database.Engine import engine, Base, dbSession
 from Database.DatasetIds import DatasetIds
 from Database.GoogleAccount import GoogleUser
+from Database.DatasetData import DatasetData
+from Database.DataIds import DataIds
 from google.oauth2 import id_token
 from google.auth.transport import requests
-import uuid
-
 from Database.UserIds import UserIds
 from Database.Username import Username
+import uuid
+
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -79,40 +82,17 @@ def createProject():
 
 @app.route('/addData', methods=['POST'])
 def addData():
-    fileID = request.json['fileID']
+    fileId = request.json['fileId']
     fileType = request.json['fileType']
     columnsToAppend = request.json['columnsToAppend']
+    userId = request.json['userId']
 
-    if fileType == '.csv':
-        blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
-        containerName = "datasets"
-        blobClient = blobServiceClient.get_blob_client(container=containerName, blob=fileID + fileType)
-        downloadPath = TEMP_FOLDER + fileID + fileType
-        folder = open(downloadPath, "w+")
-        folder.write(blobClient.download_blob().readall().decode("utf-8"))
-        folder.close()
+    dataId = DataIds()
+    dataId.saveToDB()
+    data = DatasetData(id=dataId.id, datasetId=fileId, data=columnsToAppend, userId=userId, loaded=False,
+                       fileType=fileType)
+    data.saveToDB()
 
-        rowsToAppend = []
-        with open(downloadPath, newline='') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                rowsToAppend.append(row)
-
-        f = open(downloadPath, "w+")
-        f.close()
-
-        rowsToAppend.append(columnsToAppend)
-        with open(downloadPath, "a", encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerows(rowsToAppend)
-
-        df = pd.read_csv(downloadPath)
-        df.to_csv(downloadPath, index=False)
-
-        uploadFile(downloadPath)
-
-        filePath = pathlib.Path(downloadPath)
-        filePath.unlink()
     return {'success': True}
 
 
@@ -204,6 +184,47 @@ def getUser(user):
     return {'id': user.id, 'username': user.username,
             'admin': user.admin, 'loginDate': user.loginDate}
 
+
+def updateDB():
+    notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
+    for data in notUpdatedData:
+        blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
+        containerName = "datasets"
+        blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
+        downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
+        folder = open(downloadPath, "w+")
+        folder.write(blobClient.download_blob().readall().decode("utf-8"))
+        folder.close()
+
+        rowsToAppend = []
+        with open(downloadPath, newline='') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                rowsToAppend.append(row)
+
+        f = open(downloadPath, "w+")
+        f.close()
+
+        rowsToAppend.append(data.data)
+        with open(downloadPath, "a", encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerows(rowsToAppend)
+
+        df = pd.read_csv(downloadPath)
+        df.to_csv(downloadPath, index=False)
+
+        uploadFile(downloadPath)
+
+        filePath = pathlib.Path(downloadPath)
+        filePath.unlink()
+
+        data.loaded = True
+        dbSession.commit()
+
+
+scheduler = BackgroundScheduler(daemon=True)
+scheduler.add_job(updateDB, 'interval', minutes=60)
+scheduler.start()
 
 if __name__ == '__main__':
     app.run(debug=True)
