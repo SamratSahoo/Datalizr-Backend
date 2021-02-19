@@ -12,7 +12,7 @@ class DatasetData(Base):
     datasetId = Column('datasetId', String(length=36))
     data = Column('data', PickleType())
     userUUID = Column('userId', String(length=36))
-    fileType = Column('fileType', String(), default=".csv")
+    fileType = Column('fileType', String(length=128), default=".csv")
     loaded = Column('loaded', Boolean(), default=False)
 
     def __repr__(self):

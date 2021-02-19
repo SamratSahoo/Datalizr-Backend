@@ -8,17 +8,13 @@ import os
 import pathlib
 import pandas as pd
 
-from Database.Dataset import Dataset
+from Database.Datasets import Datasets
 from Database.Encryption import encryptData
 from Database.Engine import engine, Base, dbSession
-from Database.DatasetIds import DatasetIds
 from Database.GoogleAccount import GoogleUser
 from Database.DatasetData import DatasetData
-from Database.DataIds import DataIds
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from Database.UserIds import UserIds
-from Database.Username import Username
 import uuid
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -49,7 +45,7 @@ def createProject():
     filenameID = str(uuid.uuid4())
 
     # If UUID already exists, make new UUID
-    while DatasetIds.query.filter_by(id=filenameID).first() is not None:
+    while Datasets.query.filter_by(id=filenameID).first() is not None:
         filenameID = str(uuid.uuid4())
 
     # Final Path
@@ -69,12 +65,8 @@ def createProject():
         # Remove file from tmp folder
         pathlib.Path(path).unlink()
 
-        # Save file to UUID Database
-        uniqueId = DatasetIds(id=filenameID)
-        uniqueId.saveToDB()
-
-        # Add Dataset to UUID
-        dataset = Dataset(id=filenameID, userUUID=userInfo['id'])
+        # Add Dataset to DB
+        dataset = Datasets(id=filenameID, userUUID=userInfo['id'])
         dataset.saveToDB()
 
     return {'fileName': path, 'success': True}
@@ -87,9 +79,11 @@ def addData():
     columnsToAppend = request.json['columnsToAppend']
     userId = request.json['userId']
 
-    dataId = DataIds()
-    dataId.saveToDB()
-    data = DatasetData(id=dataId.id, datasetId=fileId, data=columnsToAppend, userId=userId, loaded=False,
+    dataId = str(uuid.uuid4())
+    while Datasets.query.filter_by(id=dataId).first() is not None:
+        dataId = str(uuid.uuid4())
+
+    data = DatasetData(id=dataId, datasetId=fileId, data=columnsToAppend, userId=userId, loaded=False,
                        fileType=fileType)
     data.saveToDB()
 
@@ -128,8 +122,9 @@ def googleSignUp():
     socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('CLIENT_ID'))['sub']
 
     # Datalizr ID + username
-    uniqueID = UserIds(id=str(uuid.uuid4()))
-    uniqueUsername = Username(name=username)
+    uniqueID = str(uuid.uuid4())
+    while GoogleUser.query.filter_by(id=uniqueID) is not None:
+        uniqueID = str(uuid.uuid4())
 
     # Get Hash for email
     emailHash = encryptData(email.lower())
@@ -138,11 +133,8 @@ def googleSignUp():
     success = False
     # If the user does not exist in the database, User will be registered with a google account
     if GoogleUser.query.filter_by(socialId=socialId).first() is None:
-        user = GoogleUser(emailHash=emailHash, username=uniqueUsername.name, socialId=socialId, admin=False,
-                          id=uniqueID.id)
-        # Save UUID + unique username to database
-        uniqueID.saveToDB()
-        uniqueUsername.saveToDB()
+        user = GoogleUser(emailHash=emailHash, username=username, socialId=socialId, admin=False,
+                          id=uniqueID)
         # Save the user to the database
         user.saveToDB()
         status = 'SUCCESS: Added to Database'
@@ -159,13 +151,13 @@ def googleSignUp():
 def usernameAvailable():
     username = request.json['username']
     # Return true if available else False
-    return {'userAvailable': Username.query.filter_by(name=username).first() is None}
+    return {'userAvailable': GoogleUser.query.filter_by(username=username).first() is None}
 
 
 @app.route('/getProjects', methods=['POST'])
 def getUserProjects():
     userId = request.json['id']
-    return {'projects': Dataset.query.filter_by(userUUID=userId).all()}
+    return {'projects': Datasets.query.filter_by(userUUID=userId).all()}
 
 
 # ====================== HELPER METHODS ====================== #
