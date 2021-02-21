@@ -20,7 +20,7 @@ import uuid
 from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 Base.metadata.create_all(bind=engine)
 

@@ -3,7 +3,7 @@ import os
 import uuid
 
 from itsdangerous import SignatureExpired, BadSignature, TimedJSONWebSignatureSerializer
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, LargeBinary
 from Database.Engine import Base, dbSession
 
 
@@ -15,7 +15,7 @@ class GoogleUser(Base):
 
     # Google Specific
     socialId = Column('googleId', String(200), nullable=False, unique=True)
-    emailHash = Column('emailHash', String(128), unique=True)
+    emailHash = Column('emailHash', LargeBinary(), unique=True)
 
     # Pertains to Functionality
     username = Column('username', String(100), index=True)
