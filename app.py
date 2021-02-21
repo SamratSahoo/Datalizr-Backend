@@ -20,7 +20,7 @@ import uuid
 from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
+cors = CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 Base.metadata.create_all(bind=engine)
 
@@ -96,8 +96,7 @@ def googleLogin():
     success = False
 
     # Verify ID token
-    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('CLIENT_ID'))['sub']
-
+    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))['sub']
     # Query through database
     if GoogleUser.query.filter_by(socialId=socialId).first() is not None:
         user = GoogleUser.query.filter_by(socialId=socialId).first()
@@ -116,14 +115,13 @@ def googleSignUp():
     # Grab User's username and email
     username = request.json['username']
     email = request.json['email']
-
     # Process Tokens for google and facebook
     # Verify ID token
-    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('CLIENT_ID'))['sub']
+    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))['sub']
 
     # Datalizr ID + username
     uniqueID = str(uuid.uuid4())
-    while GoogleUser.query.filter_by(id=uniqueID) is not None:
+    while GoogleUser.query.filter_by(id=uniqueID) is None:
         uniqueID = str(uuid.uuid4())
 
     # Get Hash for email
@@ -151,6 +149,7 @@ def googleSignUp():
 def usernameAvailable():
     username = request.json['username']
     # Return true if available else False
+    print({'userAvailable': GoogleUser.query.filter_by(username=username).first() is None})
     return {'userAvailable': GoogleUser.query.filter_by(username=username).first() is None}
 
 
@@ -179,9 +178,9 @@ def getUser(user):
 
 def updateDB():
     notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
+    blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
+    containerName = "datasets"
     for data in notUpdatedData:
-        blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
-        containerName = "datasets"
         blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
         downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
         folder = open(downloadPath, "w+")
@@ -215,7 +214,7 @@ def updateDB():
 
 
 scheduler = BackgroundScheduler(daemon=True)
-scheduler.add_job(updateDB, 'interval', minutes=60)
+scheduler.add_job(updateDB, 'interval', minutes=5)
 scheduler.start()
 
 if __name__ == '__main__':
