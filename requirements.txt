@@ -13,7 +13,7 @@ cffi==1.14.4
 cfn-flip==1.2.3
 chardet==4.0.0
 click==7.1.2
-cryptography==3.3.1
+pycryptodomex==3.10.1
 dnspython==1.16.0
 durationpy==0.5
 eventlet==0.30.1
