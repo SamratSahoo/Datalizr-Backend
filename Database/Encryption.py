@@ -1,28 +1,22 @@
+import binascii
+import sys
+
+from cryptography.fernet import Fernet
 import os
-
 import settings
-import base64
-from Cryptodome.Cipher import AES
-from Cryptodome import Random
-
-BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[:-ord(s[len(s)-1:])]
-
-def encryptData(raw):
-    raw = pad(raw)
-    iv = Random.new().read(AES.block_size)
-    cipher = AES.new(bytes(os.getenv('FERNET_KEY'), encoding='utf-8'), AES.MODE_CBC, iv)
-    return base64.b64encode(iv + cipher.encrypt(raw.encode("utf8")))
 
 
-def decryptData(enc):
-    enc = base64.b64decode(enc)
-    iv = enc[:16]
-    cipher = AES.new(bytes(os.getenv('FERNET_KEY'), encoding='utf-8'), AES.MODE_CBC, iv)
-    return unpad(cipher.decrypt(enc[16:])).decode("utf-8")
+def encryptData(data):
+    key = os.getenv('FERNET_KEY')
+    fernet = Fernet(key.encode())
+    return fernet.encrypt(bytes(data, encoding='utf-8'))
+
+
+def decryptData(encryption):
+    key = os.getenv('FERNET_KEY')
+    fernet = Fernet(key.encode())
+    return fernet.decrypt(encryption).decode()
 
 
 if __name__ == '__main__':
-    print(encryptData('Hello World'))
     print(decryptData(encryptData('Hello World')))
