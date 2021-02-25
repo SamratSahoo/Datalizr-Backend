@@ -15,7 +15,7 @@ class GoogleUser(Base):
 
     # Google Specific
     socialId = Column('googleId', String(200), nullable=False, unique=True)
-    emailHash = Column('emailHash', String(), unique=True)
+    emailHash = Column('emailHash', String(200), unique=True)
 
     # Pertains to Functionality
     username = Column('username', String(100), index=True)
