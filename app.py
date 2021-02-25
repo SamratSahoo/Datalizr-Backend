@@ -149,7 +149,6 @@ def googleSignUp():
 def usernameAvailable():
     username = request.json['username']
     # Return true if available else False
-    print({'userAvailable': GoogleUser.query.filter_by(username=username).first() is None})
     return {'userAvailable': GoogleUser.query.filter_by(username=username).first() is None}
 
 
