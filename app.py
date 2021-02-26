@@ -1,3 +1,5 @@
+import sys
+
 from flask import Flask, request
 from flask_cors import CORS
 
@@ -83,7 +85,8 @@ def addData():
     while Datasets.query.filter_by(id=dataId).first() is not None:
         dataId = str(uuid.uuid4())
 
-    data = DatasetData(id=dataId, datasetId=fileId, data=columnsToAppend, userId=userId, loaded=False,
+    print(fileType)
+    data = DatasetData(id=dataId, datasetId=fileId, data=columnsToAppend, userUUID=userId, loaded=False,
                        fileType=fileType)
     data.saveToDB()
 
@@ -96,7 +99,8 @@ def googleLogin():
     success = False
 
     # Verify ID token
-    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))['sub']
+    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))[
+        'sub']
     # Query through database
     if GoogleUser.query.filter_by(socialId=socialId).first() is not None:
         user = GoogleUser.query.filter_by(socialId=socialId).first()
@@ -117,7 +121,8 @@ def googleSignUp():
     email = request.json['email']
     # Process Tokens for google and facebook
     # Verify ID token
-    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))['sub']
+    socialId = id_token.verify_oauth2_token(request.json['token'], requests.Request(), os.getenv('GOOGLE_CLIENT_ID'))[
+        'sub']
 
     # Datalizr ID + username
     uniqueID = str(uuid.uuid4())
