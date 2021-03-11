@@ -36,11 +36,6 @@ def index():
     return {"Hello": "World"}
 
 
-@app.route('/')
-def index():
-    return {"Hello": "World"}
-
-
 @app.route('/createProject', methods=['POST'])
 def createProject():
     # Specify type of file + CSV Column Titles
