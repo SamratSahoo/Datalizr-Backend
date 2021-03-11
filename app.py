@@ -36,6 +36,11 @@ def index():
     return {"Hello": "World"}
 
 
+@app.route('/')
+def index():
+    return {"Hello": "World"}
+
+
 @app.route('/createProject', methods=['POST'])
 def createProject():
     # Specify type of file + CSV Column Titles
@@ -180,46 +185,46 @@ def getUser(user):
             'admin': user.admin, 'loginDate': user.loginDate}
 
 
-def updateDB():
-    notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
-    blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
-    containerName = "datasets"
-    for data in notUpdatedData:
-        blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
-        downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
-        folder = open(downloadPath, "w+")
-        folder.write(blobClient.download_blob().readall().decode("utf-8"))
-        folder.close()
-
-        rowsToAppend = []
-        with open(downloadPath, newline='') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                rowsToAppend.append(row)
-
-        f = open(downloadPath, "w+")
-        f.close()
-
-        rowsToAppend.append(data.data)
-        with open(downloadPath, "a", encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerows(rowsToAppend)
-
-        df = pd.read_csv(downloadPath)
-        df.to_csv(downloadPath, index=False)
-
-        uploadFile(downloadPath)
-
-        filePath = pathlib.Path(downloadPath)
-        filePath.unlink()
-
-        data.loaded = True
-        dbSession.commit()
-
-
-scheduler = BackgroundScheduler(daemon=True)
-scheduler.add_job(updateDB, 'interval', minutes=5)
-scheduler.start()
+# def updateDB():
+#     notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
+#     blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
+#     containerName = "datasets"
+#     for data in notUpdatedData:
+#         blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
+#         downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
+#         folder = open(downloadPath, "w+")
+#         folder.write(blobClient.download_blob().readall().decode("utf-8"))
+#         folder.close()
+#
+#         rowsToAppend = []
+#         with open(downloadPath, newline='') as f:
+#             reader = csv.reader(f)
+#             for row in reader:
+#                 rowsToAppend.append(row)
+#
+#         f = open(downloadPath, "w+")
+#         f.close()
+#
+#         rowsToAppend.append(data.data)
+#         with open(downloadPath, "a", encoding='utf-8') as f:
+#             writer = csv.writer(f)
+#             writer.writerows(rowsToAppend)
+#
+#         df = pd.read_csv(downloadPath)
+#         df.to_csv(downloadPath, index=False)
+#
+#         uploadFile(downloadPath)
+#
+#         filePath = pathlib.Path(downloadPath)
+#         filePath.unlink()
+#
+#         data.loaded = True
+#         dbSession.commit()
+#
+#
+# scheduler = BackgroundScheduler(daemon=True)
+# scheduler.add_job(updateDB, 'interval', minutes=5)
+# scheduler.start()
 
 if __name__ == '__main__':
     app.run(debug=True)
