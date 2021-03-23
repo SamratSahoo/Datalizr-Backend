@@ -41,8 +41,10 @@ def createProject():
     # Specify type of file + CSV Column Titles
     fileType = request.json['fileType']
     columns = request.json['columns']
-    userInfo = request.json['user']
-
+    userId = request.json['userId']
+    username = request.json['username']
+    datasetName = request.json['datasetName']
+    description = request.json['description']
     # Create UUID for File (Will serve as name)
     filenameID = str(uuid.uuid4())
 
@@ -68,7 +70,8 @@ def createProject():
         pathlib.Path(path).unlink()
 
         # Add Dataset to DB
-        dataset = Datasets(id=filenameID, userUUID=userInfo['id'])
+        dataset = Datasets(id=filenameID, userUUID=userId, userUsername=username,
+                           datasetName=datasetName, description=description, fields=columns)
         dataset.saveToDB()
 
     return {'fileName': path, 'success': True}
@@ -85,7 +88,6 @@ def addData():
     while Datasets.query.filter_by(id=dataId).first() is not None:
         dataId = str(uuid.uuid4())
 
-    print(fileType)
     data = DatasetData(id=dataId, datasetId=fileId, data=columnsToAppend, userUUID=userId, loaded=False,
                        fileType=fileType)
     data.saveToDB()
@@ -156,13 +158,28 @@ def usernameAvailable():
     # Return true if available else False
     return {'userAvailable': GoogleUser.query.filter_by(username=username).first() is None}
 
+@app.route('/authentication/changeUsername', methods=['POST'])
+def changeUsername():
+    newUsername = request.json['newUsername']
+    id = request.json['id']
+    if GoogleUser.query.filter_by(username=newUsername).first() is None:
+        user = GoogleUser.query.filter_by(id=id).first()
+        dbSession.query(GoogleUser).filter_by(id=id).update({'username': newUsername})
+        dbSession.commit()
+        return {**getUser(user), **{'updatedUsername': newUsername, 'success': True}}
+    else:
+        user = GoogleUser.query.filter_by(id=id).first()
+        return {**getUser(user), **{'updatedUsername': "", 'success': False}}
 
 @app.route('/getProjects', methods=['POST'])
 def getUserProjects():
     userId = request.json['id']
-    return {'projects': Datasets.query.filter_by(userUUID=userId).all()}
+    return {'projects': [getDataset(dataset) for dataset in Datasets.query.filter_by(userUUID=userId).all()]}
 
-
+@app.route('/getDatasets', methods=['POST'])
+def getDatasetAPI():
+    datasetId = request.json['datasetId']
+    return getDataset(Datasets.query.filter_by(id=datasetId).first())
 # ====================== HELPER METHODS ====================== #
 
 
@@ -180,46 +197,51 @@ def getUser(user):
             'admin': user.admin, 'loginDate': user.loginDate}
 
 
-# def updateDB():
-#     notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
-#     blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
-#     containerName = "datasets"
-#     for data in notUpdatedData:
-#         blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
-#         downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
-#         folder = open(downloadPath, "w+")
-#         folder.write(blobClient.download_blob().readall().decode("utf-8"))
-#         folder.close()
-#
-#         rowsToAppend = []
-#         with open(downloadPath, newline='') as f:
-#             reader = csv.reader(f)
-#             for row in reader:
-#                 rowsToAppend.append(row)
-#
-#         f = open(downloadPath, "w+")
-#         f.close()
-#
-#         rowsToAppend.append(data.data)
-#         with open(downloadPath, "a", encoding='utf-8') as f:
-#             writer = csv.writer(f)
-#             writer.writerows(rowsToAppend)
-#
-#         df = pd.read_csv(downloadPath)
-#         df.to_csv(downloadPath, index=False)
-#
-#         uploadFile(downloadPath)
-#
-#         filePath = pathlib.Path(downloadPath)
-#         filePath.unlink()
-#
-#         data.loaded = True
-#         dbSession.commit()
-#
-#
-# scheduler = BackgroundScheduler(daemon=True)
-# scheduler.add_job(updateDB, 'interval', minutes=5)
-# scheduler.start()
+def getDataset(dataset):
+    return {'id': dataset.id, 'userUsername': dataset.userUsername, 'datasetName': dataset.datasetName,
+            'description': dataset.description, 'fields': dataset.fields}
+
+    # def updateDB():
+    #     notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
+    #     blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
+    #     containerName = "datasets"
+    #     for data in notUpdatedData:
+    #         blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
+    #         downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
+    #         folder = open(downloadPath, "w+")
+    #         folder.write(blobClient.download_blob().readall().decode("utf-8"))
+    #         folder.close()
+    #
+    #         rowsToAppend = []
+    #         with open(downloadPath, newline='') as f:
+    #             reader = csv.reader(f)
+    #             for row in reader:
+    #                 rowsToAppend.append(row)
+    #
+    #         f = open(downloadPath, "w+")
+    #         f.close()
+    #
+    #         rowsToAppend.append(data.data)
+    #         with open(downloadPath, "a", encoding='utf-8') as f:
+    #             writer = csv.writer(f)
+    #             writer.writerows(rowsToAppend)
+    #
+    #         df = pd.read_csv(downloadPath)
+    #         df.to_csv(downloadPath, index=False)
+    #
+    #         uploadFile(downloadPath)
+    #
+    #         filePath = pathlib.Path(downloadPath)
+    #         filePath.unlink()
+    #
+    #         data.loaded = True
+    #         dbSession.commit()
+    #
+    #
+    # scheduler = BackgroundScheduler(daemon=True)
+    # scheduler.add_job(updateDB, 'interval', minutes=5)
+    # scheduler.start()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
