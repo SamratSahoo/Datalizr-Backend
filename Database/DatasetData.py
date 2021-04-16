@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, String, PickleType, Boolean
+from sqlalchemy import Column, String, PickleType, Boolean, Integer
 
 from Database.Engine import dbSession, Base, engine
 
@@ -14,6 +14,7 @@ class DatasetData(Base):
     userUUID = Column('userId', String(length=36))
     fileType = Column('fileType', String(length=128), default=".csv")
     loaded = Column('loaded', Boolean(), default=False)
+    approvals = Column('approvals', Integer(), default=0)
 
     def __repr__(self):
         return 'UUID: %r' % self.id

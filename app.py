@@ -10,6 +10,7 @@ import os
 import pathlib
 import pandas as pd
 
+from Database.DataReview import DataReview
 from Database.Datasets import Datasets
 from Database.Encryption import encryptData
 from Database.Engine import engine, Base, dbSession
@@ -158,6 +159,7 @@ def usernameAvailable():
     # Return true if available else False
     return {'userAvailable': GoogleUser.query.filter_by(username=username).first() is None}
 
+
 @app.route('/authentication/changeUsername', methods=['POST'])
 def changeUsername():
     newUsername = request.json['newUsername']
@@ -171,15 +173,55 @@ def changeUsername():
         user = GoogleUser.query.filter_by(id=id).first()
         return {**getUser(user), **{'updatedUsername': "", 'success': False}}
 
+
 @app.route('/getProjects', methods=['POST'])
 def getUserProjects():
     userId = request.json['id']
     return {'projects': [getDataset(dataset) for dataset in Datasets.query.filter_by(userUUID=userId).all()]}
 
+
 @app.route('/getDatasets', methods=['POST'])
 def getDatasetAPI():
     datasetId = request.json['datasetId']
     return getDataset(Datasets.query.filter_by(id=datasetId).first())
+
+
+@app.route('/approveData', methods=['POST'])
+def approveData():
+    userId = request.json['userId']
+    datasetId = request.json['datasetId']
+    dataId = request.json['dataId']
+    approvalStatus = request.json['approvalStatus']
+
+    dataReview = DataReview(datasetId=datasetId, userId=userId, dataId=dataId, approvalStatus=approvalStatus)
+    dataReview.saveToDB()
+    if approvalStatus:
+        DatasetData.query.filter_by(id=dataId).first().approvals += 1
+
+    dbSession.commit()
+    return {'success': True}
+
+
+@app.route('/getDataReview', methods=['POST'])
+def getDataReview():
+    userId = request.json['userId']
+    potentialData = DatasetData.query.filter_by(loaded=False).all()
+    for data in potentialData:
+        userReviews = DataReview.query.filter_by(dataId=data.id).all()
+        for user in userReviews:
+            if userId not in user.userId:
+                datasetId = getDatasetData(data)['datasetId']
+                fields = Datasets.query.filter_by(id=datasetId).first().fields
+                return {**getDatasetData(data), **{'success': True, 'fields': fields}}
+        if len(userReviews) == 0:
+            datasetId = getDatasetData(data)['datasetId']
+            fields = Datasets.query.filter_by(id=datasetId).first().fields
+            return {**getDatasetData(data), **{'success': True, "fields": fields}}
+
+    return {'success': False, 'id': "", 'datasetId': "", 'data': [], 'userId': "",
+            'fileType': "", 'loaded': False, 'approvals': 0, "fields":[]}
+
+
 # ====================== HELPER METHODS ====================== #
 
 
@@ -201,47 +243,52 @@ def getDataset(dataset):
     return {'id': dataset.id, 'userUsername': dataset.userUsername, 'datasetName': dataset.datasetName,
             'description': dataset.description, 'fields': dataset.fields}
 
-    # def updateDB():
-    #     notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
-    #     blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
-    #     containerName = "datasets"
-    #     for data in notUpdatedData:
-    #         blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
-    #         downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
-    #         folder = open(downloadPath, "w+")
-    #         folder.write(blobClient.download_blob().readall().decode("utf-8"))
-    #         folder.close()
-    #
-    #         rowsToAppend = []
-    #         with open(downloadPath, newline='') as f:
-    #             reader = csv.reader(f)
-    #             for row in reader:
-    #                 rowsToAppend.append(row)
-    #
-    #         f = open(downloadPath, "w+")
-    #         f.close()
-    #
-    #         rowsToAppend.append(data.data)
-    #         with open(downloadPath, "a", encoding='utf-8') as f:
-    #             writer = csv.writer(f)
-    #             writer.writerows(rowsToAppend)
-    #
-    #         df = pd.read_csv(downloadPath)
-    #         df.to_csv(downloadPath, index=False)
-    #
-    #         uploadFile(downloadPath)
-    #
-    #         filePath = pathlib.Path(downloadPath)
-    #         filePath.unlink()
-    #
-    #         data.loaded = True
-    #         dbSession.commit()
-    #
-    #
-    # scheduler = BackgroundScheduler(daemon=True)
-    # scheduler.add_job(updateDB, 'interval', minutes=5)
-    # scheduler.start()
+
+def getDatasetData(data):
+    return {'id': data.id, 'datasetId': data.datasetId, 'data': data.data, 'userId': data.userUUID,
+            'fileType': data.fileType, 'loaded': data.loaded, 'approvals': data.approvals}
+
+
+def updateDB():
+    notUpdatedData = DatasetData.query.filter_by(loaded=False).all()
+    blobServiceClient = BlobServiceClient.from_connection_string(os.getenv('AZURE_CONNECTION_STRING'))
+    containerName = "datasets"
+    for data in notUpdatedData:
+        if data.approvals >= 4:
+            blobClient = blobServiceClient.get_blob_client(container=containerName, blob=data.datasetId + data.fileType)
+            downloadPath = TEMP_FOLDER + data.datasetId + data.fileType
+            folder = open(downloadPath, "w+")
+            folder.write(blobClient.download_blob().readall().decode("utf-8"))
+            folder.close()
+
+            rowsToAppend = []
+            with open(downloadPath, newline='') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    rowsToAppend.append(row)
+
+            f = open(downloadPath, "w+")
+            f.close()
+
+            rowsToAppend.append(data.data)
+            with open(downloadPath, "a", encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(rowsToAppend)
+
+            df = pd.read_csv(downloadPath)
+            df.to_csv(downloadPath, index=False)
+
+            uploadFile(downloadPath)
+
+            filePath = pathlib.Path(downloadPath)
+            filePath.unlink()
+
+            data.loaded = True
+            dbSession.commit()
 
 
 if __name__ == '__main__':
+    scheduler = BackgroundScheduler(daemon=True)
+    scheduler.add_job(updateDB, 'interval', seconds=5)
+    scheduler.start()
     app.run(debug=True)
