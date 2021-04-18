@@ -204,11 +204,19 @@ def approveData():
 
 @app.route('/getDataReview', methods=['POST'])
 def getDataReview():
+    # Get User Id of reviewer
     userId = request.json['userId']
+    # Filter for all potential data
     potentialData = DatasetData.query.filter_by(loaded=False).all()
+    # Iterate through data
     for data in potentialData:
+        # If data was added by same user, then just continue
+        if data.userUUID in userId:
+            continue
+        # get user review
         userReviews = DataReview.query.filter_by(dataId=data.id).all()
         for user in userReviews:
+            # check if user id is not in the reviewed section
             if userId not in user.userId:
                 datasetId = getDatasetData(data)['datasetId']
                 fields = Datasets.query.filter_by(id=datasetId).first().fields
