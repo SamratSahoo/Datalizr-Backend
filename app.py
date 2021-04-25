@@ -1,3 +1,4 @@
+import random
 import sys
 
 from flask import Flask, request
@@ -209,25 +210,54 @@ def getDataReview():
     # Filter for all potential data
     potentialData = DatasetData.query.filter_by(loaded=False).all()
     # Iterate through data
+    possibleData = []
     for data in potentialData:
-        # If data was added by same user, then just continue
+        # If reviewer is the person who added that data, then skip that data
         if data.userUUID in userId:
             continue
-        # get user review
+        # get user reviews for data
         userReviews = DataReview.query.filter_by(dataId=data.id).all()
         for user in userReviews:
-            # check if user id is not in the reviewed section
+            # If user has not already reviewed it
             if userId not in user.userId:
                 datasetId = getDatasetData(data)['datasetId']
                 fields = Datasets.query.filter_by(id=datasetId).first().fields
-                return {**getDatasetData(data), **{'success': True, 'fields': fields}}
+                possibleData.append(data)
+        # If no user reviews, append to possible data
         if len(userReviews) == 0:
-            datasetId = getDatasetData(data)['datasetId']
-            fields = Datasets.query.filter_by(id=datasetId).first().fields
-            return {**getDatasetData(data), **{'success': True, "fields": fields}}
+            possibleData.append(data)
 
-    return {'success': False, 'id': "", 'datasetId': "", 'data': [], 'userId': "",
-            'fileType': "", 'loaded': False, 'approvals': 0, "fields":[]}
+    # If no data to review, give empty request
+    if len(possibleData) == 0:
+        return {
+            'success': False,
+            'dataList': [
+                {'id': "", 'datasetId': "", 'data': [], 'userId': "", 'fileType': "", 'loaded': False, 'approvals': 0}],
+            "fieldList": [[]]
+        }
+    # If data to review, return a list of all the info
+    else:
+        return {
+            "dataList": [getDatasetData(data) for data in possibleData],
+            "fieldList": [Datasets.query.filter_by(id=getDatasetData(data)['datasetId']).first().fields for data in
+                          possibleData],
+            'success': True,
+        }
+
+
+@app.route('/getContributeList', methods=['POST'])
+def getContributeList():
+    potentialDatasets = []
+    query = dbSession.query(Datasets)
+    for i in range(20):
+        rowCount = int(query.count())
+        randomProject = query.offset(int(rowCount * random.random())).first()
+        # Check if dataset already in potential datasets
+        if randomProject not in potentialDatasets:
+            # Add dataset to potential dataset
+            potentialDatasets.append(randomProject)
+    # Return list of projects
+    return {'projects': [getDataset(dataset) for dataset in potentialDatasets]}
 
 
 # ====================== HELPER METHODS ====================== #
