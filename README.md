@@ -21,11 +21,24 @@ The concept of Datalizr can be visualized with the following example: one person
 - **ReadME**: The ReadME file is this file! You can find a preface and documentation over the whole project.
 
 ### Requirements & Setup
-* **Step 1:** Install Python 3.7  (This may work with other versions of Python 3 but Python 3.7 is the only one I have tested)
-* **Step 2:** Run ```pip3 install -r requirements.txt```
-* **Step 3:** Create a Twitter Developer Account and get Twitter Credentials
-* **Step 4:** Create a ```.env``` file and add the following variables with their respective variables: ```AZURE_STORAGE_KEY, AZURE_CONNECTION_STRING, DB_URL, APP_SECRET_KEY, FERNET_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET```.
-* **Step 5:** Run ```python3 app.py```
+
+- **Step 1:** Install Python 3.7 (This may work with other versions of Python 3 but Python 3.7 is the only one I have tested)
+- **Step 2:** Run `pip3 install -r requirements.txt`
+- **Step 3:** Create a Twitter Developer Account and get Twitter Credentials
+- **Step 4:** Create a `.env` file and add the following variables with their respective variables: `AZURE_STORAGE_KEY, AZURE_CONNECTION_STRING, DB_URL, APP_SECRET_KEY, FERNET_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET`.
+- **Step 5:** Run `python3 app.py`
+
+### File Documentation
+
+- `app.py:` This is the main file within this application and hosts all the endpoints for the frontend interface to call--some endpoints include creating an account, changing username, and checking checking if there is data to review.
+- `app_tests.py:` This is a testing file to test the different endpoints within `app.py`.
+- `settings.py:` This is a file that simply helps set environment variables through a `.env` file when the API server is first starting.
+- `Database/Engine.py:` This is the file that helps build the database that is being used in the backend to store different types of information like dataset information, user information, etc.
+- `Database/DataReview.py:` This is a database table to keep track of every review that occurs on the review page of the web application
+- `Database/DatasetData.py:` This is a database table to keep track of all the data and the respective user & dataset it belongs to. It is often used for many endpoints to see what data has been fully reviewed and what data needs reviewing.
+- `Database/Datasets.py:` This is a database table to keep track of all the datasets created.
+- `Database/GoogleAccount.py:` This is a database table to keep track of all the users that sign into Datalizr with Google. This help maintain user information and datasets appropirately.
+- `Database/Encryption.py:` This is an encryption that uses symmetric encryption to ensure user data stays safe. It is used to encrypt user emails so that they are never leaked.
 
 ### Datalizr Frontend
 
